@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Stock</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #productos-lista {
+            list-style-type: none;
+        }
+    </style>
 </head>
 <body>
     <h1>Gestión de Stock</h1>
@@ -13,33 +17,60 @@
         <input type="text" id="producto" required>
         <label for="cantidad">Cantidad:</label>
         <input type="number" id="cantidad" required>
-        <button type="submit">Agregar</button>
+        <button type="button" onclick="agregarOActualizarProducto()">Agregar/Actualizar</button>
     </form>
     <h2>Lista de Productos</h2>
-    <ul id="lista-productos"></ul>
+    <ul id="productos-lista"></ul>
 
     <script>
-        $(document).ready(function() {
-            function cargarProductos() {
-                $.get('/productos', function(data) {
-                    $('#lista-productos').empty();
-                    data.forEach(function(producto) {
-                        $('#lista-productos').append(`<li>${producto[0]}: ${producto[1]} unidades</li>`);
-                    });
-                });
-            }
-
-            cargarProductos();
-
-            $('#formulario').submit(function(event) {
-                event.preventDefault();
-                var producto = $('#producto').val();
-                var cantidad = $('#cantidad').val();
-                $.post('/agregar', JSON.stringify({ producto: producto, cantidad: cantidad }), function() {
-                    cargarProductos();
-                });
+        function cargarProductos() {
+            var productos = JSON.parse(localStorage.getItem('productos')) || [];
+            var listaProductos = document.getElementById('productos-lista');
+            listaProductos.innerHTML = '';
+            productos.forEach(function(producto, index) {
+                var listItem = document.createElement('li');
+                listItem.textContent = producto.nombre + ': ' + producto.cantidad + ' unidades';
+                var editarButton = document.createElement('button');
+                editarButton.textContent = 'Editar';
+                editarButton.onclick = function() {
+                    editarProducto(index);
+                };
+                listItem.appendChild(editarButton);
+                listaProductos.appendChild(listItem);
             });
-        });
+        }
+
+        function agregarOActualizarProducto() {
+            var productoNombre = document.getElementById('producto').value;
+            var cantidad = document.getElementById('cantidad').value;
+            if (productoNombre && cantidad) {
+                var productos = JSON.parse(localStorage.getItem('productos')) || [];
+                var productoExistente = productos.find(p => p.nombre === productoNombre);
+                if (productoExistente) {
+                    productoExistente.cantidad = cantidad;
+                } else {
+                    productos.push({ nombre: productoNombre, cantidad: cantidad });
+                }
+                localStorage.setItem('productos', JSON.stringify(productos));
+                cargarProductos();
+                // Limpiar los campos del formulario después de agregar o actualizar
+                document.getElementById('producto').value = '';
+                document.getElementById('cantidad').value = '';
+            }
+        }
+
+        function editarProducto(index) {
+            var productos = JSON.parse(localStorage.getItem('productos')) || [];
+            var producto = productos[index];
+            document.getElementById('producto').value = producto.nombre;
+            document.getElementById('cantidad').value = producto.cantidad;
+            // Eliminar el producto de la lista para actualizarlo después de la edición
+            productos.splice(index, 1);
+            localStorage.setItem('productos', JSON.stringify(productos));
+            cargarProductos();
+        }
+
+        cargarProductos();
     </script>
 </body>
 </html>
